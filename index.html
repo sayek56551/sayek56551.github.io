@@ -258,9 +258,11 @@
     const countdownEl = document.getElementById('countdown');
     const loadingIndicator = document.getElementById('loading-indicator');
 
-    const itemWidth = 228; // 200px width + 14px*2 margin
-    const cycles = 5; // Minimum full cycles for the spin
-    let isAnimating = false;
+    const itemWidth = 228; // 200px + margins
+    const infiniteSpeed = 1.5; // пикселей в кадр
+    let infiniteScrollOffset = 0;
+    let infiniteInterval;
+    let isSpinning = false;
     let isFirstSpin = true;
 
     function preloadImages() {
@@ -270,7 +272,7 @@
           img.src = p.src;
           img.onload = () => resolve();
           img.onerror = () => {
-            console.warn(`Failed to load image: ${p.src}. Using fallback.`);
+            console.warn(`Ошибка загрузки ${p.src}`);
             p.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwADZQGO4dB3KAAAAABJRU5ErkJggg==';
             resolve();
           };
@@ -280,83 +282,76 @@
     }
 
     function initCarousel() {
-      const repeatedGifts = [];
-      for(let i = 0; i < 3; i++) repeatedGifts.push(...gifts);
-      repeatedGifts.push(...gifts);
-      for(let i = 0; i < 3; i++) repeatedGifts.push(...gifts);
-
-      carousel.style.width = `${repeatedGifts.length * itemWidth}px`;
-      carousel.innerHTML = repeatedGifts.map(p => `
+      const repeated = [];
+      for (let i = 0; i < 10; i++) repeated.push(...gifts);
+      carousel.innerHTML = repeated.map(p => `
         <div class="item" style="background-image:url('${p.src}');">
           <span class="item-label">${p.name}</span>
         </div>
       `).join('');
-      
-      carousel.style.left = `-${gifts.length * 3 * itemWidth}px`;
-      console.log('Carousel initialized at left:', carousel.style.left);
-
+      carousel.style.width = `${repeated.length * itemWidth}px`;
       carousel.classList.add('loaded');
       loadingIndicator.style.display = 'none';
       spinBtn.disabled = false;
+      startInfiniteScroll();
+    }
+
+    function startInfiniteScroll() {
+      infiniteScrollOffset = 0;
+      clearInterval(infiniteInterval);
+      infiniteInterval = setInterval(() => {
+        infiniteScrollOffset -= infiniteSpeed;
+        if (Math.abs(infiniteScrollOffset) >= carousel.offsetWidth / 2) {
+          infiniteScrollOffset = 0;
+        }
+        carousel.style.transition = 'none';
+        carousel.style.left = `${infiniteScrollOffset}px`;
+      }, 16); // ~60fps
+    }
+
+    function stopInfiniteScroll() {
+      clearInterval(infiniteInterval);
     }
 
     function spin() {
-      if (isAnimating) return;
-      isAnimating = true;
+      if (isSpinning) return;
+      isSpinning = true;
       spinBtn.disabled = true;
       modal.style.display = 'none';
+      stopInfiniteScroll();
 
       const winIndex = Math.floor(Math.random() * gifts.length);
-      const wrapperCenter = carousel.parentElement.offsetWidth / 2;
-      const baseTargetIndex = gifts.length + winIndex;
-      const targetOffset = baseTargetIndex * itemWidth + (itemWidth / 2) - wrapperCenter;
-      const totalSpinsDistance = cycles * gifts.length * itemWidth;
-      const finalTargetPosition = -(targetOffset + totalSpinsDistance);
+      const totalItems = gifts.length * 10;
+      const currentLeft = parseFloat(carousel.style.left) || 0;
+      const currentOffset = -currentLeft;
 
-      console.log('Spinning to winIndex:', winIndex, 'Target left:', finalTargetPosition);
+      const spins = 5;
+      const targetIndex = gifts.length * 5 + winIndex;
+      const finalOffset = targetIndex * itemWidth;
+      const distanceToMove = finalOffset - currentOffset;
+      const finalLeft = -finalOffset;
 
-      carousel.style.transition = 'left 8s cubic-bezier(0.1, 0.7, 0.3, 1)';
-      carousel.style.left = `${finalTargetPosition}px`;
+      carousel.style.transition = 'left 6s cubic-bezier(0.1, 0.7, 0.3, 1)';
+      carousel.style.left = `${finalLeft}px`;
 
       setTimeout(() => {
-        finishSpin(winIndex, finalTargetPosition);
-      }, 8000);
-    }
-
-    function finishSpin(winIndex, finalPosition) {
-      const items = Array.from(carousel.children);
-      const wrapperCenter = carousel.parentElement.offsetWidth / 2;
-      let winningItemElement = null;
-
-      for (let i = 0; i < items.length; i++) {
-        const itemLeftEdge = i * itemWidth;
-        const itemCenter = itemLeftEdge + (itemWidth / 2);
-        const offsetFromCenter = Math.abs((-finalPosition + wrapperCenter) - itemCenter);
-        if (offsetFromCenter < itemWidth / 2) {
-          const itemOriginalIndex = i % gifts.length;
-          if (itemOriginalIndex === winIndex) {
-            winningItemElement = items[i];
-            break;
-          }
+        const items = carousel.querySelectorAll('.item');
+        const winningItem = items[targetIndex];
+        if (winningItem) {
+          winningItem.classList.add('highlight');
+          setTimeout(() => winningItem.classList.remove('highlight'), 1500);
         }
-      }
 
-      if (winningItemElement) {
-        winningItemElement.classList.add('highlight');
-        setTimeout(() => winningItemElement.classList.remove('highlight'), 1500);
-      } else {
-        console.error('No winning item found for index:', winIndex);
-      }
+        prizeImg.src = gifts[winIndex].src;
+        prizeName.textContent = gifts[winIndex].name;
+        modal.style.display = 'flex';
 
-      prizeImg.src = gifts[winIndex].src;
-      prizeName.textContent = gifts[winIndex].name;
-      modal.style.display = 'flex';
-      
-      isAnimating = false;
-      if (isFirstSpin) {
-        isFirstSpin = false;
-        startCountdown();
-      }
+        isSpinning = false;
+        if (isFirstSpin) {
+          isFirstSpin = false;
+          startCountdown();
+        }
+      }, 6000);
     }
 
     function startCountdown() {
@@ -391,12 +386,7 @@
     window.addEventListener('load', () => {
       spinBtn.disabled = true;
       loadingIndicator.style.display = 'flex';
-      carousel.classList.remove('loaded');
-
       preloadImages().then(() => {
-        initCarousel();
-      }).catch(error => {
-        console.error("Error preloading images:", error);
         initCarousel();
       });
     });
