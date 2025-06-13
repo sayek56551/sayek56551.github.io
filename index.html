@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Рулетка NFT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    :root {
+      --bg-gradient: #0B0A14;
+      --accent-blue: #1e3a8a;
+      --accent-cyan: #8092F6;
+      --text-light: #e0e7ff;
+      --card-bg: rgba(255, 255, 255, 0);
+      --shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; font-family: 'Raleway', sans-serif; background: var(--bg-gradient); color: var(--text-light); overflow: auto; }
+    .container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(12px); padding: 40px 20px 100px; }
+    h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 32px; text-shadow: var(--shadow); text-align: center; }
+    .carousel-wrapper { 
+      position: relative; 
+      width: 100%; 
+      max-width: 440px; 
+      height: 240px; 
+      overflow: hidden; 
+      background: var(--card-bg); 
+      border-radius: 40px; 
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-light); 
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    .carousel { 
+      position: absolute;
+      left: 0;
+      top: 0;
+      display: flex; 
+      height: 100%; 
+      transition: left 8s cubic-bezier(0.1, 0.7, 0.3, 1);
+      opacity: 0;
+    }
+    .carousel.loaded {
+      opacity: 1;
+    }
+    .item { 
+      flex: none; 
+      width: 200px; 
+      height: 200px; 
+      margin: 0 14px; 
+      background-size: cover; 
+      background-position: center; 
+      border-radius: 24px; 
+      box-shadow: var(--shadow); 
+      display: flex; 
+      align-items: flex-end; 
+      justify-content: center; 
+      padding-bottom: 18px; 
+      font-weight: 800; 
+      position: relative; 
+    }
+    .item::before { content: ''; position: absolute; border-radius: 24px; }
+    .item-label { border-radius: 12px; padding: 8px 16px; font-size: 1.1rem; color: var(--text-light); position: relative; }
+    #pointer { position: absolute; top: calc(50% - 150px); left: 50%; border-left: 36px solid transparent; border-right: 36px solid transparent; border-bottom: 72px solid var(--accent-cyan); transform: translateX(-50%); filter: drop-shadow(0 6px 12px rgba(0,0,0,1)); z-index: 5;}
+    #pointer::after { content: ''; position: absolute; top: 10px; left: -30px; width: 60px; height: 60px; border-radius: 50%; animation: ripple 2s infinite; }
+    @keyframes ripple { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+    .btn { margin-top: 32px; padding: 18px 42px; font-size: 1.2rem; font-weight: 800; color: var(--text-light); background: #8091F6; border: none; border-radius: 50px; box-shadow: var(--shadow); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; width: 100%; max-width: 280px; }
+    .btn:hover:not(:disabled) { transform: translateY(-6px); box-shadow: 0 16px 50px rgba(0,0,0,1); }
+    .btn:disabled { opacity: 0.3; cursor: default; }
+    #timer { margin-top: 20px; font-size: 1rem; color: #94a3b8; text-align: center; }
+    #modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 10; }
+    .dialog { background: var(--card-bg); padding: 36px; border-radius: 28px; text-align: center; box-shadow: var(--shadow); max-width: 90%; width: 380px; }
+    .dialog h2 { margin-bottom: 24px; font-size: 1.8rem; }
+    .dialog img { width: 160px; height: 160px; object-fit: cover; border-radius: 24px; box-shadow: var(--shadow); margin-bottom: 24px; }
+    .dialog p { margin-bottom: 28px; font-size: 1.2rem; }
+    .dialog .btn { margin: 10px auto; }
+    nav { 
+      display: flex; 
+      justify-content: space-around; 
+      align-items: center; 
+      background:#0B0A14; 
+      backdrop-filter: blur(8px); 
+      padding: 12px 0; 
+      box-shadow: 0 -2px 18px rgba(0,0,0,0.8); 
+      position: fixed; 
+      bottom: 0; 
+      width: 100%; 
+      z-index: 2; 
+      border-top: 1px solid rgba(255,255,255,0.1); 
+    }
+    nav a { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      color: var(--text-light); 
+      text-decoration: none; 
+      font-weight: 600; 
+      font-size: 0.85rem; 
+      padding: 8px; 
+      opacity: 0.7; 
+      transition: opacity 0.3s, transform 0.3s; 
+    }
+    nav a i { 
+      font-size: 1.2rem; 
+      margin-bottom: 4px; 
+    }
+    nav a.active { 
+      opacity: 1; 
+      font-weight: 800; 
+      transform: translateY(-2px); 
+    }
+    nav a:hover { 
+      opacity: 1; 
+      transform: translateY(-2px); 
+    }
+    .highlight { 
+      background: #7B90F7 !important; 
+      color: white !important; 
+      animation: highlight 0.5s ease 3; 
+    }
+    @keyframes highlight { 
+      0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(255,255,255,0); } 
+      50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(255,255,255,0.5); } 
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>NFT Lucky Gifts </h1>
+    <h1><span style="color:#8092F6 ;">рулетка</span></h2>
+    <div class="carousel-wrapper">
+      <div id="loading-indicator">Загрузка подарков...</div>
+      <div id="carousel" class="carousel"></div>
+      <div id="pointer"></div>
+    </div>
+    <div class="button-group">
+      <button id="spin" class="btn" disabled>Крутить бесплатно</button>
+    </div>
+    <div id="timer">Следующее вращение: <span id="countdown">00:00:00</span></div>
+  </div>
+
+  <div id="modal">
+    <div class="dialog">
+      <h2>🎉 Ваш приз:</h2>
+      <img id="prize-img" src="" alt="Подарок" />
+      <p id="prize-name"></p>
+      <button id="connect" class="btn">Подключить бота</button>
+    </div>
+  </div>
+
+  <nav>
+    <a href="modal.html" class="active"><i class="fas fa-home"></i> Главная</a>
+    <a href="modal.html"><i class="fas fa-tasks"></i> Задания</a>
+    <a href="modal.html"><i class="fas fa-dice"></i> Рулетка</a>
+    <a href="modal.html"><i class="fas fa-store"></i> Магазин</a>
+    <a href="modal.html"><i class="fas fa-user"></i> Профиль</a>
+  </nav>
+
+  <script>
+    const gifts = [
+      { src: 'images/gift1.png', name: 'Frog & Heart' },
+      { src: 'images/gift2.png', name: 'Light Saber' },
+      { src: 'images/gift3.png', name: 'Eternal Candle' },
+      { src: 'images/gift4.png', name: 'Evil Eye' },
+      { src: 'images/gift5.png', name: 'Candy Cane' },
+      { src: 'images/gift6.png', name: 'Vintage Cigar' },
+      { src: 'images/gift7.png', name: 'Party Sparkler' },
+      { src: 'images/gift8.png', name: 'Perfume Bottle' },
+      { src: 'images/gift9.png', name: 'Easter eggs' },
+      { src: 'images/gift10.png', name: 'Star' },
+      { src: 'images/gift11.png', name: 'Calendar' },
+      { src: 'images/gift12.png', name: 'Voodoo Doll' },
+      { src: 'images/gift1.png', name: 'Frog & Heart' },
+      { src: 'images/gift2.png', name: 'Light Saber' },
+      { src: 'images/gift3.png', name: 'Eternal Candle' },
+      { src: 'images/gift4.png', name: 'Evil Eye' },
+      { src: 'images/gift5.png', name: 'Candy Cane' },
+      { src: 'images/gift6.png', name: 'Vintage Cigar' },
+      { src: 'images/gift7.png', name: 'Party Sparkler' },
+      { src: 'images/gift8.png', name: 'Perfume Bottle' },
+      { src: 'images/gift9.png', name: 'Easter eggs' },
+      { src: 'images/gift10.png', name: 'Star' },
+      { src: 'images/gift11.png', name: 'Calendar' },
+      { src: 'images/gift12.png', name: 'Voodoo Doll' },
+      { src: 'images/gift1.png', name: 'Frog & Heart' },
+      { src: 'images/gift2.png', name: 'Light Saber' },
+      { src: 'images/gift3.png', name: 'Eternal Candle' },
+      { src: 'images/gift4.png', name: 'Evil Eye' },
+      { src: 'images/gift5.png', name: 'Candy Cane' },
+      { src: 'images/gift6.png', name: 'Vintage Cigar' },
+      { src: 'images/gift7.png', name: 'Party Sparkler' },
+      { src: 'images/gift8.png', name: 'Perfume Bottle' },
+      { src: 'images/gift9.png', name: 'Easter eggs' },
+      { src: 'images/gift10.png', name: 'Star' },
+      { src: 'images/gift11.png', name: 'Calendar' },
+      { src: 'images/gift12.png', name: 'Voodoo Doll' },
+      { src: 'images/gift1.png', name: 'Frog & Heart' },
+      { src: 'images/gift2.png', name: 'Light Saber' },
+      { src: 'images/gift3.png', name: 'Eternal Candle' },
+      { src: 'images/gift4.png', name: 'Evil Eye' },
+      { src: 'images/gift5.png', name: 'Candy Cane' },
+      { src: 'images/gift6.png', name: 'Vintage Cigar' },
+      { src: 'images/gift7.png', name: 'Party Sparkler' },
+      { src: 'images/gift8.png', name: 'Perfume Bottle' },
+      { src: 'images/gift9.png', name: 'Easter eggs' },
+      { src: 'images/gift10.png', name: 'Star' },
+      { src: 'images/gift11.png', name: 'Calendar' },
+      { src: 'images/gift12.png', name: 'Voodoo Doll' },
+      { src: 'images/gift1.png', name: 'Frog & Heart' },
+      { src: 'images/gift2.png', name: 'Light Saber' },
+      { src: 'images/gift3.png', name: 'Eternal Candle' },
+      { src: 'images/gift4.png', name: 'Evil Eye' },
+      { src: 'images/gift5.png', name: 'Candy Cane' },
+      { src: 'images/gift6.png', name: 'Vintage Cigar' },
+      { src: 'images/gift7.png', name: 'Party Sparkler' },
+      { src: 'images/gift8.png', name: 'Perfume Bottle' },
+      { src: 'images/gift9.png', name: 'Easter eggs' },
+      { src: 'images/gift10.png', name: 'Star' },
+      { src: 'images/gift11.png', name: 'Calendar' },
+      { src: 'images/gift12.png', name: 'Voodoo Doll' },
+      { src: 'images/gift1.png', name: 'Frog & Heart' },
+      { src: 'images/gift2.png', name: 'Light Saber' },
+      { src: 'images/gift3.png', name: 'Eternal Candle' },
+      { src: 'images/gift4.png', name: 'Evil Eye' },
+      { src: 'images/gift5.png', name: 'Candy Cane' },
+      { src: 'images/gift6.png', name: 'Vintage Cigar' },
+      { src: 'images/gift7.png', name: 'Party Sparkler' },
+      { src: 'images/gift8.png', name: 'Perfume Bottle' },
+      { src: 'images/gift9.png', name: 'Easter eggs' },
+      { src: 'images/gift10.png', name: 'Star' },
+      { src: 'images/gift11.png', name: 'Calendar' },
+      { src: 'images/gift12.png', name: 'Voodoo Doll' },
+      { src: 'images/gift1.png', name: 'Frog & Heart' },
+      { src: 'images/gift2.png', name: 'Light Saber' },
+      { src: 'images/gift3.png', name: 'Eternal Candle' },
+      { src: 'images/gift4.png', name: 'Evil Eye' },
+      { src: 'images/gift5.png', name: 'Candy Cane' },
+      { src: 'images/gift6.png', name: 'Vintage Cigar' },
+      { src: 'images/gift7.png', name: 'Party Sparkler' },
+      { src: 'images/gift8.png', name: 'Perfume Bottle' },
+      { src: 'images/gift9.png', name: 'Easter eggs' },
+      { src: 'images/gift10.png', name: 'Star' },
+      { src: 'images/gift11.png', name: 'Calendar' },
+      { src: 'images/gift12.png', name: 'Voodoo Doll' },
+      
+    ];
+
+    const carousel = document.getElementById('carousel');
+    const spinBtn = document.getElementById('spin');
+    const modal = document.getElementById('modal');
+    const connectBtn = document.getElementById('connect');
+    const prizeImg = document.getElementById('prize-img');
+    const prizeName = document.getElementById('prize-name');
+    const countdownEl = document.getElementById('countdown');
+    const loadingIndicator = document.getElementById('loading-indicator');
+
+    const itemWidth = 228; // 200px width + 14px*2 margin
+    const cycles = 5; // Minimum full cycles for the spin
+    let isAnimating = false;
+    let isFirstSpin = true;
+
+    function preloadImages() {
+      const imagePromises = gifts.map(p => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.src = p.src;
+          img.onload = () => resolve();
+          img.onerror = () => {
+            console.warn(`Failed to load image: ${p.src}. Using fallback.`);
+            p.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwADZQGO4dB3KAAAAABJRU5ErkJggg==';
+            resolve();
+          };
+        });
+      });
+      return Promise.all(imagePromises);
+    }
+
+    function initCarousel() {
+      const repeatedGifts = [];
+      for(let i = 0; i < 3; i++) repeatedGifts.push(...gifts);
+      repeatedGifts.push(...gifts);
+      for(let i = 0; i < 3; i++) repeatedGifts.push(...gifts);
+
+      carousel.style.width = `${repeatedGifts.length * itemWidth}px`;
+      carousel.innerHTML = repeatedGifts.map(p => `
+        <div class="item" style="background-image:url('${p.src}');">
+          <span class="item-label">${p.name}</span>
+        </div>
+      `).join('');
+      
+      carousel.style.left = `-${gifts.length * 3 * itemWidth}px`;
+      console.log('Carousel initialized at left:', carousel.style.left);
+
+      carousel.classList.add('loaded');
+      loadingIndicator.style.display = 'none';
+      spinBtn.disabled = false;
+    }
+
+    function spin() {
+      if (isAnimating) return;
+      isAnimating = true;
+      spinBtn.disabled = true;
+      modal.style.display = 'none';
+
+      const winIndex = Math.floor(Math.random() * gifts.length);
+      const wrapperCenter = carousel.parentElement.offsetWidth / 2;
+      const baseTargetIndex = gifts.length + winIndex;
+      const targetOffset = baseTargetIndex * itemWidth + (itemWidth / 2) - wrapperCenter;
+      const totalSpinsDistance = cycles * gifts.length * itemWidth;
+      const finalTargetPosition = -(targetOffset + totalSpinsDistance);
+
+      console.log('Spinning to winIndex:', winIndex, 'Target left:', finalTargetPosition);
+
+      carousel.style.transition = 'left 8s cubic-bezier(0.1, 0.7, 0.3, 1)';
+      carousel.style.left = `${finalTargetPosition}px`;
+
+      setTimeout(() => {
+        finishSpin(winIndex, finalTargetPosition);
+      }, 8000);
+    }
+
+    function finishSpin(winIndex, finalPosition) {
+      const items = Array.from(carousel.children);
+      const wrapperCenter = carousel.parentElement.offsetWidth / 2;
+      let winningItemElement = null;
+
+      for (let i = 0; i < items.length; i++) {
+        const itemLeftEdge = i * itemWidth;
+        const itemCenter = itemLeftEdge + (itemWidth / 2);
+        const offsetFromCenter = Math.abs((-finalPosition + wrapperCenter) - itemCenter);
+        if (offsetFromCenter < itemWidth / 2) {
+          const itemOriginalIndex = i % gifts.length;
+          if (itemOriginalIndex === winIndex) {
+            winningItemElement = items[i];
+            break;
+          }
+        }
+      }
+
+      if (winningItemElement) {
+        winningItemElement.classList.add('highlight');
+        setTimeout(() => winningItemElement.classList.remove('highlight'), 1500);
+      } else {
+        console.error('No winning item found for index:', winIndex);
+      }
+
+      prizeImg.src = gifts[winIndex].src;
+      prizeName.textContent = gifts[winIndex].name;
+      modal.style.display = 'flex';
+      
+      isAnimating = false;
+      if (isFirstSpin) {
+        isFirstSpin = false;
+        startCountdown();
+      }
+    }
+
+    function startCountdown() {
+      let timer = 24 * 3600;
+      spinBtn.disabled = true;
+      countdownEl.textContent = formatTime(timer);
+      const interval = setInterval(() => {
+        if (timer > 0) {
+          timer--;
+          countdownEl.textContent = formatTime(timer);
+        } else {
+          spinBtn.disabled = false;
+          countdownEl.textContent = '00:00:00';
+          clearInterval(interval);
+        }
+      }, 1000);
+    }
+
+    function formatTime(seconds) {
+      const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+      const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+      const s = String(seconds % 60).padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
+
+    spinBtn.addEventListener('click', spin);
+    connectBtn.addEventListener('click', () => {
+      alert('Подключение бота...');
+      window.location.href = 'https://t.me/your_bot';
+    });
+
+    window.addEventListener('load', () => {
+      spinBtn.disabled = true;
+      loadingIndicator.style.display = 'flex';
+      carousel.classList.remove('loaded');
+
+      preloadImages().then(() => {
+        initCarousel();
+      }).catch(error => {
+        console.error("Error preloading images:", error);
+        initCarousel();
+      });
+    });
+  </script>
+</body>
+</html>
