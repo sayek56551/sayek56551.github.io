@@ -73,6 +73,16 @@
     .btn:disabled { opacity: 0.3; cursor: default; }
     #timer { margin-top: 20px; font-size: 1rem; color: #94a3b8; text-align: center; }
     #modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 10; }
+
+    #modal {
+    transition: opacity 0.3s ease;
+
+    }
+
+  #modal.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
     .dialog { background: var(--card-bg); padding: 36px; border-radius: 28px; text-align: center; box-shadow: var(--shadow); max-width: 90%; width: 380px; }
     .dialog h2 { margin-bottom: 24px; font-size: 1.8rem; }
     .dialog img { width: 160px; height: 160px; object-fit: cover; border-radius: 24px; box-shadow: var(--shadow); margin-bottom: 24px; }
@@ -379,7 +389,7 @@
 
     spinBtn.addEventListener('click', spin);
     connectBtn.addEventListener('click', () => {
-      window.location.href = 'https://t.me/LuckyNFTRobot?start=getgift';
+      window.open('https://t.me/LuckyNFTRobot?start=getgift', '_blank');
     });
 
     window.addEventListener('load', () => {
@@ -389,6 +399,17 @@
         initCarousel();
       });
     });
+  </script>
+  <script>
+    document.getElementById("connect").addEventListener("click", () => {
+    const modal = document.getElementById("modal");
+    modal.classList.add("hidden");
+
+    // если хочешь полностью скрыть с экрана:
+    setTimeout(() => {
+      modal.style.display = "none";
+    }, 300);
+  });
   </script>
 </body>
 </html>
